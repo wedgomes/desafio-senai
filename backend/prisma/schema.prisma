@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Tabela para armazenar os produtos da loja.
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  description String?
+  price     Decimal
+  stock     Int
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  couponApplications ProductCouponApplication[]
+}
+
+/// Tabela para armazenar os cupons de desconto.
+model Coupon {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  type      CouponType
+  value     Decimal
+  oneShot   Boolean  @default(false)
+
+  validFrom DateTime
+  validUntil DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  applications ProductCouponApplication[]
+}
+
+/// Tabela de junção para registrar qual cupom foi aplicado a qual produto.
+model ProductCouponApplication {
+  id        Int      @id @default(autoincrement())
+
+  appliedAt DateTime @default(now())
+  removedAt DateTime?
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  couponId  Int
+  coupon    Coupon  @relation(fields: [couponId], references: [id])
+
+}
+
+/// Enum para os tipos de cupom permitidos.
+enum CouponType {
+  percent
+  fixed
+}
