@@ -12,11 +12,12 @@ datasource db {
 
 /// Tabela para armazenar os produtos da loja.
 model Product {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  description String?
-  price     Decimal
-  stock     Int
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  normalizedName  String   @unique
+  description     String?
+  price           Decimal
+  stock           Int
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
