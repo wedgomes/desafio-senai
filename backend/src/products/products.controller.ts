@@ -5,12 +5,15 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Query
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Delete, HttpCode } from '@nestjs/common';
 import { Patch } from '@nestjs/common';
+import { PaginationQueryDto } from './dto/pagination-query.dto'; // Importe nosso novo DTO
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
 
 @Controller('products') // prefixo da rota para /products
 export class ProductsController {
@@ -22,8 +25,8 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.productsService.findAll(paginationQuery);
   }
 
   @Get(':id')
@@ -48,5 +51,19 @@ export class ProductsController {
   @Post(':id/restore')
   restore(@Param('id', ParseIntPipe) id: number) {
       return this.productsService.restore(id);
+  }
+
+  @Post(':id/discount/coupon')
+  applyCoupon(
+      @Param('id', ParseIntPipe) id: number,
+      @Body() applyCouponDto: ApplyCouponDto,
+  ) {
+      return this.productsService.applyCoupon(id, applyCouponDto);
+  }
+
+  @Delete(':id/discount')
+  @HttpCode(204)
+  removeDiscount(@Param('id', ParseIntPipe) id: number) {
+      return this.productsService.removeDiscount(id);
   }
 }
