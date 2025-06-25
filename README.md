@@ -71,7 +71,7 @@ Siga os passos abaixo para executar a aplicação em seu ambiente local.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/wedgomes/desafio-senai.git
+    git clone [https://github.com/wedgomes/desafio-senai.gi]
     ```
 
 2.  **Configure e execute o Backend:**
