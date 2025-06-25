@@ -83,9 +83,8 @@ Siga os passos abaixo para executar a aplicação em seu ambiente local.
     # Instale as dependências
     npm install
 
-    # Crie o arquivo de ambiente a partir do exemplo
-    # (No Windows, use 'copy .env.example .env')
-    cp .env.example .env
+    # Renomeie o arquivo de ambiente para .env
+    .env.example -> .env
 
     # Aplique as migrações para criar o banco de dados SQLite
     npx prisma migrate dev
