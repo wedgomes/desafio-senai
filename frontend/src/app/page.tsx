@@ -27,6 +27,16 @@ export default function HomePage() {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms de delay
 
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // Este useEffect agora tem duas responsabilidades:
+    // 1. Marcar que estamos no lado do cliente.
+    // 2. Buscar os dados.
+    setIsClient(true); 
+    fetchProducts();
+  }, [page, debouncedSearchTerm, hasDiscount]); // A dependência continua a mesma
+
   async function fetchProducts() {
     try {
       setIsLoading(true);
@@ -61,8 +71,11 @@ export default function HomePage() {
     <main className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Gerenciamento de Produtos</h1>
-       
-        <ProductDialog onProductAdded={fetchProducts} />
+       <ProductDialog
+        onActionComplete={fetchProducts}
+        triggerButton={<Button>Adicionar Produto</Button>}
+      />
+            
       </div>
 
       <div className="flex gap-4 mb-4">
@@ -86,15 +99,17 @@ export default function HomePage() {
 
       {isLoading && <p>Carregando produtos...</p>}
       {error && <p className="text-red-500">{error}</p>}
-      {!isLoading && !error && meta && meta.totalPages > 0 && (
-          <>
-              <ProductTable products={products} />
-              <PaginationControls
-                  currentPage={meta.page}
-                  totalPages={meta.totalPages}
-                  onPageChange={(newPage) => setPage(newPage)}
-              />
-          </>
+      {isClient && !isLoading && !error && (
+        <>
+          <ProductTable products={products} onActionComplete={fetchProducts} />
+          {meta && meta.totalPages > 0 && (
+            <PaginationControls
+              currentPage={meta.page}
+              totalPages={meta.totalPages}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+          )}
+        </>
       )}
       <Toaster />
     </main>

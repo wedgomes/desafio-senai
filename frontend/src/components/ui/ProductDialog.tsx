@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,41 +35,66 @@ const formSchema = z.object({
 });
 
 interface ProductDialogProps {
-  onProductAdded: () => void; // Função para recarregar a lista de produtos
+  onActionComplete: () => void;
+  productToEdit?: Product; // Prop opcional para o produto a ser editado
+  triggerButton: React.ReactNode; // Prop para o botão que abre o dialog
 }
 
-export function ProductDialog({ onProductAdded }: ProductDialogProps) {
+export function ProductDialog({ onActionComplete, productToEdit, triggerButton }: ProductDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const isEditMode = !!productToEdit;
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", description: "", stock: 0, price: 0.01 },
+    // Os valores padrão agora dependem se estamos em modo de edição
+    defaultValues: {
+      name: productToEdit?.name || "",
+      description: productToEdit?.description || "",
+      stock: productToEdit?.stock || 0,
+      price: productToEdit?.price || 0.01,
+    },
   });
+
+  // Este useEffect garante que o formulário seja preenchido quando o modo de edição for ativado
+  useEffect(() => {
+    if (productToEdit) {
+      form.reset(productToEdit);
+    } else {
+      form.reset({ name: "", description: "", stock: 0, price: 0.01 });
+    }
+  }, [productToEdit, form]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await api.post('/products', values);
-      toast.success("Produto adicionado com sucesso.");
-      onProductAdded(); // Avisa o componente pai para recarregar os dados
-      setIsOpen(false); // Fecha o modal
-      form.reset(); // Limpa o formulário
+      if (isEditMode) {
+        // Lógica de Edição
+        await api.patch(`/products/${productToEdit.id}`, values);
+        toast.success("Produto atualizado com sucesso.");
+      } else {
+        // Lógica de Criação
+        await api.post('/products', values);
+        toast.success("Produto adicionado com sucesso.");
+      }
+      onActionComplete();
+      setIsOpen(false);
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || "Erro desconhecido";
-     toast.error("Erro ao adicionar produto", {
-      description: `Ocorreu um erro: ${errorMessage}`,
-    });
+      toast.error(`Erro ao ${isEditMode ? 'atualizar' : 'adicionar'} produto`, {
+        description: `Ocorreu um erro: ${errorMessage}`,
+      });
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>Adicionar Produto</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Produto</DialogTitle>
+          <DialogTitle>{isEditMode ? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
           <DialogDescription>
-            Preencha as informações do novo produto.
+            {isEditMode ? "Altere as informações do produto." : "Preencha as informações do novo produto."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

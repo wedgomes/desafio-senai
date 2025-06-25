@@ -9,14 +9,29 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProductDialog } from "./ProductDialog"; // Importe o Dialog de Produto
+import { ApplyCouponDialog } from "./ApplyCouponDialog"; // Importe o Dialog de Cupom
+import { api } from "@/services/api";
+import { toast } from "sonner";
 
 interface ProductTableProps {
   products: Product[];
+  onActionComplete: () => void; // Prop para notificar o pai para recarregar
 }
 
-export function ProductTable({ products }: ProductTableProps) {
+export function ProductTable({ products, onActionComplete }: ProductTableProps) {
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+   const handleRemoveDiscount = async (productId: number) => {
+    try {
+      await api.delete(`/products/${productId}/discount`);
+      toast.success("Desconto removido com sucesso!");
+      onActionComplete(); // Chama a função do componente pai para recarregar a lista
+    } catch (error: any) {
+      toast.error("Falha ao remover desconto.");
+    }
   };
 
   return (
@@ -49,7 +64,23 @@ export function ProductTable({ products }: ProductTableProps) {
                   {formatCurrency(product.finalPrice)}
                 </TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">Editar</Button>
+                  <div className="flex gap-2">
+                    <ProductDialog
+                      onActionComplete={onActionComplete}
+                      productToEdit={product}
+                      triggerButton={<Button variant="outline" size="sm">Editar</Button>}
+                    />
+                    {product.hasCouponApplied ? (
+                      <Button variant="destructive" size="sm" onClick={() => handleRemoveDiscount(product.id)}>
+                        Remover Desconto
+                      </Button>
+                    ) : (
+                      <ApplyCouponDialog
+                        productId={product.id}
+                        onActionComplete={onActionComplete}
+                      />
+                    )}
+                  </div>
                   {/* TODO: Adicionar outras ações */}
                 </TableCell>
               </TableRow>
