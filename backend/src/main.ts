@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(); // <--- habilita CORS
 
   // Adiciona o prefixo /api/v1 para todas as rotas
   app.setGlobalPrefix('api/v1');
