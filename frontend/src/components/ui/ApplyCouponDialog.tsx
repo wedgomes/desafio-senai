@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/services/api";
 import { toast } from "sonner";
-
+import axios from "axios";
 interface ApplyCouponDialogProps {
   productId: number;
   onActionComplete: () => void;
@@ -19,21 +19,24 @@ export function ApplyCouponDialog({ productId, onActionComplete }: ApplyCouponDi
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await api.post(`/products/${productId}/discount/coupon`, { code });
-      toast.success("Cupom aplicado com sucesso!");
-      onActionComplete();
-      setIsOpen(false);
-      setCode("");
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Erro desconhecido";
-      toast.error("Falha ao aplicar cupom", { description: errorMessage });
-    } finally {
-      setIsSubmitting(false);
+  e.preventDefault();
+  setIsSubmitting(true);
+  try {
+    await api.post(`/products/${productId}/discount/coupon`, { code });
+    toast.success("Cupom aplicado com sucesso!");
+    onActionComplete();
+    setIsOpen(false);
+    setCode("");
+  } catch (error) { // Remova o ': any'
+    let errorMessage = "Erro desconhecido ao aplicar cupom.";
+    if (axios.isAxiosError(error) && error.response) {
+      errorMessage = error.response.data.message;
     }
-  };
+    toast.error("Falha ao aplicar cupom", { description: errorMessage });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

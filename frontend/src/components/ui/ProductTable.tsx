@@ -13,6 +13,7 @@ import { ProductDialog } from "./ProductDialog"; // Importe o Dialog de Produto
 import { ApplyCouponDialog } from "./ApplyCouponDialog"; // Importe o Dialog de Cupom
 import { api } from "@/services/api";
 import { toast } from "sonner";
+import axios from "axios";
 
 interface ProductTableProps {
   products: Product[];
@@ -25,14 +26,18 @@ export function ProductTable({ products, onActionComplete }: ProductTableProps) 
   };
 
    const handleRemoveDiscount = async (productId: number) => {
-    try {
-      await api.delete(`/products/${productId}/discount`);
-      toast.success("Desconto removido com sucesso!");
-      onActionComplete(); // Chama a função do componente pai para recarregar a lista
-    } catch (error: any) {
-      toast.error("Falha ao remover desconto.");
-    }
-  };
+      try {
+        await api.delete(`/products/${productId}/discount`);
+        toast.success("Desconto removido com sucesso!");
+        onActionComplete();
+      } catch (error) { // Remova o ': any'
+        let errorMessage = "Falha ao remover desconto.";
+        if (axios.isAxiosError(error) && error.response) {
+            errorMessage = error.response.data.message;
+        }
+        toast.error(errorMessage);
+      }
+    };
 
   return (
     <div className="rounded-md border">

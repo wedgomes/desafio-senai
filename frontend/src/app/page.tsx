@@ -1,10 +1,9 @@
-"use client"; // Precisamos de interatividade (estado), então marcamos como Client Component
+"use client";
 
-import { ProductDialog } from "@/components/ui/ProductDialog";
-import { Toaster } from 'sonner'; // Importe o Toaster
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ProductTable } from "@/components/ui/ProductTable";
+import { PaginationControls } from "@/components/ui/PaginationControls";
+import { ProductDialog } from "@/components/ui/ProductDialog";
 import { PaginatedProductsResponse, Product, PaginationMeta } from "@/types";
 import { api } from "@/services/api";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -12,36 +11,24 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PaginationControls } from "@/components/ui/PaginationControls";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Estados para os filtros
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [hasDiscount, setHasDiscount] = useState<string>('all'); // 'all', 'true', 'false'
-
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms de delay
-
   const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    // Este useEffect agora tem duas responsabilidades:
-    // 1. Marcar que estamos no lado do cliente.
-    // 2. Buscar os dados.
-    setIsClient(true); 
-    fetchProducts();
-  }, [page, debouncedSearchTerm, hasDiscount]); // A dependência continua a mesma
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [hasDiscount, setHasDiscount] = useState<string>('all');
+  
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  async function fetchProducts() {
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-
       const params = new URLSearchParams();
       params.append('page', page.toString());
       if (debouncedSearchTerm) {
@@ -60,24 +47,20 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  // useEffect agora depende da página e dos filtros (com debounce)
-  useEffect(() => {
-    fetchProducts();
   }, [page, debouncedSearchTerm, hasDiscount]);
+
+  useEffect(() => {
+    setIsClient(true);
+    fetchProducts();
+  }, [fetchProducts]);
 
   return (
     <main className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Gerenciamento de Produtos</h1>
-       <ProductDialog
-        onActionComplete={fetchProducts}
-        triggerButton={<Button>Adicionar Produto</Button>}
-      />
-            
+        {isClient && <ProductDialog onActionComplete={fetchProducts} triggerButton={<Button>Adicionar Produto</Button>} />}
       </div>
-
+      
       <div className="flex gap-4 mb-4">
         <Input
           placeholder="Buscar por nome..."
@@ -99,10 +82,11 @@ export default function HomePage() {
 
       {isLoading && <p>Carregando produtos...</p>}
       {error && <p className="text-red-500">{error}</p>}
+      
       {isClient && !isLoading && !error && (
         <>
           <ProductTable products={products} onActionComplete={fetchProducts} />
-          {meta && meta.totalPages > 0 && (
+          {meta && meta.totalPages > 1 && (
             <PaginationControls
               currentPage={meta.page}
               totalPages={meta.totalPages}

@@ -1,32 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/services/api";
 import { toast } from "sonner";
+import axios from "axios";
+import { Product } from "@/types";
 
-// Schema de validação com Zod
 const formSchema = z.object({
   name: z.string().min(3, "Nome precisa de no mínimo 3 caracteres.").max(100),
   description: z.string().max(300).optional(),
@@ -36,53 +22,50 @@ const formSchema = z.object({
 
 interface ProductDialogProps {
   onActionComplete: () => void;
-  productToEdit?: Product; // Prop opcional para o produto a ser editado
-  triggerButton: React.ReactNode; // Prop para o botão que abre o dialog
+  productToEdit?: Product;
+  triggerButton: React.ReactNode;
 }
 
 export function ProductDialog({ onActionComplete, productToEdit, triggerButton }: ProductDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-
   const isEditMode = !!productToEdit;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    // Os valores padrão agora dependem se estamos em modo de edição
-    defaultValues: {
-      name: productToEdit?.name || "",
-      description: productToEdit?.description || "",
-      stock: productToEdit?.stock || 0,
-      price: productToEdit?.price || 0.01,
-    },
+    defaultValues: { name: "", description: "", stock: 0, price: 0.01 },
   });
 
-  // Este useEffect garante que o formulário seja preenchido quando o modo de edição for ativado
   useEffect(() => {
     if (productToEdit) {
-      form.reset(productToEdit);
+      // AQUI ESTÁ A CORREÇÃO: Transformamos o objeto para garantir compatibilidade
+      const formValues = {
+        ...productToEdit,
+        description: productToEdit.description || "", // Converte null para string vazia
+      };
+      form.reset(formValues);
     } else {
       form.reset({ name: "", description: "", stock: 0, price: 0.01 });
     }
-  }, [productToEdit, form]);
-
+  }, [productToEdit, form, isOpen]); // Adicionei 'isOpen' para resetar o form ao reabrir
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const action = isEditMode ? 'atualizar' : 'adicionar';
     try {
       if (isEditMode) {
-        // Lógica de Edição
         await api.patch(`/products/${productToEdit.id}`, values);
-        toast.success("Produto atualizado com sucesso.");
       } else {
-        // Lógica de Criação
         await api.post('/products', values);
-        toast.success("Produto adicionado com sucesso.");
       }
+      toast.success(`Produto ${action}d com sucesso.`);
       onActionComplete();
       setIsOpen(false);
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Erro desconhecido";
-      toast.error(`Erro ao ${isEditMode ? 'atualizar' : 'adicionar'} produto`, {
-        description: `Ocorreu um erro: ${errorMessage}`,
+    } catch (error) {
+      let errorMessage = `Erro desconhecido ao ${action} produto.`;
+      if (axios.isAxiosError(error) && error.response) {
+          errorMessage = error.response.data.message;
+      }
+      toast.error(`Falha ao ${action} produto`, {
+        description: errorMessage,
       });
     }
   }
@@ -99,30 +82,12 @@ export function ProductDialog({ onActionComplete, productToEdit, triggerButton }
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField name="name" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl><Input placeholder="Café Especial" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            {/* Repita FormField para description, stock e price */}
-            <FormField name="stock" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estoque</FormLabel>
-                <FormControl><Input type="number" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <FormField name="price" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preço (R$)</FormLabel>
-                <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+            <FormField name="name" control={form.control} render={({ field }) => ( <FormItem> <FormLabel>Nome</FormLabel> <FormControl><Input placeholder="Café Especial" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField name="description" control={form.control} render={({ field }) => ( <FormItem> <FormLabel>Descrição</FormLabel> <FormControl><Input placeholder="Opcional" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField name="stock" control={form.control} render={({ field }) => ( <FormItem> <FormLabel>Estoque</FormLabel> <FormControl><Input type="number" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField name="price" control={form.control} render={({ field }) => ( <FormItem> <FormLabel>Preço (R$)</FormLabel> <FormControl><Input type="number" step="0.01" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
             <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Salvando..." : "Salvar Produto"}
+              {form.formState.isSubmitting ? "Salvando..." : "Salvar"}
             </Button>
           </form>
         </Form>

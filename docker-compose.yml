@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # --- Serviço do Backend ---
+  backend:
+    build:
+      context: ./backend # Pasta onde está o Dockerfile do backend
+    ports:
+      - "3001:3001" # Mapeia a porta 3001 da sua máquina para a 3001 do contêiner
+    volumes:
+      - backend_db:/usr/src/app/prisma # Persiste o banco de dados SQLite
+    environment:
+      DATABASE_URL: 'file:./dev.db'
+
+  # --- Serviço do Frontend ---
+  frontend:
+    build:
+      context: ./frontend # Pasta onde está o Dockerfile do frontend
+    ports:
+      - "3000:3000" # Mapeia a porta 3000 da sua máquina para a 3000 do contêiner
+    depends_on:
+      - backend # Garante que o backend seja iniciado antes do frontend
+
+# --- Volume para Persistência de Dados ---
+volumes:
+  backend_db: # Declara o volume que usamos para o banco de dados
